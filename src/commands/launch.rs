@@ -29,7 +29,7 @@ pub struct LaunchCommand {
     #[clap(
         default_value = "TruckersMP-Launcher.tar.gz",
         long = "release-asset",
-        env = "TLM_XLCORE_RELEASE_ASSET"
+        env = "TLM_RELEASE_ASSET"
     )]
     xlcore_release_asset: String,
 
@@ -43,7 +43,7 @@ pub struct LaunchCommand {
     #[clap(
         long = "web-release-url",
         alias = "web-release-url-base",
-        env = "TLM_XLCORE_WEB_RELEASE_URL",
+        env = "TLM_WEB_RELEASE_URL",
         default_value = "https://files.launcher.truckersmp.com/truckersmp-launcher/linux/x64"
     )]
     xlcore_web_release_url: Url,

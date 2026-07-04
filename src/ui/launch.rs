@@ -38,7 +38,7 @@ impl LaunchUI {
             let state = state.clone();
             move || {
                 eframe::run_ui_native(
-                    "XLM",
+                    "TLM",
                     eframe::NativeOptions {
                         event_loop_builder: Some(Box::new(|event_loop| {
                             use winit::platform::wayland::EventLoopBuilderExtWayland;
@@ -71,7 +71,7 @@ impl LaunchUI {
                                 );
                                 ui.with_layout(Layout::right_to_left(Align::Max), |ui| {
                                     ui.horizontal(|ui| {
-                                        ui.label(format!("XLM v{}", env!("CARGO_PKG_VERSION")));
+                                        ui.label(format!("TLM v{}", env!("CARGO_PKG_VERSION")));
                                     });
                                 });
                             });
@@ -80,7 +80,7 @@ impl LaunchUI {
                             ui.with_layout(
                                 Layout::centered_and_justified(Direction::TopDown),
                                 |ui| {
-                                    ui.heading("Starting XIVLauncher\n(this may take a moment)");
+                                    ui.heading("Starting TruckersMP-Launcher\n(this may take a moment)");
                                 },
                             );
                         });

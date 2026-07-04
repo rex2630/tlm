@@ -4225,6 +4225,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
+name = "tlm"
+version = "0.4.0"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "clap",
+ "dirs",
+ "eframe",
+ "flate2",
+ "octocrab",
+ "reqwest 0.13.2",
+ "rustls",
+ "self_update",
+ "tar",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "winit",
+]
+
+[[package]]
 name = "tokio"
 version = "1.51.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5518,27 +5539,6 @@ name = "xkeysym"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9cc00251562a284751c9973bace760d86c0276c471b4be569fe6b068ee97a56"
-
-[[package]]
-name = "xlm"
-version = "0.4.0"
-dependencies = [
- "anyhow",
- "bytes",
- "clap",
- "dirs",
- "eframe",
- "flate2",
- "octocrab",
- "reqwest 0.13.2",
- "rustls",
- "self_update",
- "tar",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "winit",
-]
 
 [[package]]
 name = "xml-rs"

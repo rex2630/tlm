@@ -1,8 +1,8 @@
 [package]
-name = "xlm"
-description = "A painless way to use XIVLauncher on Steam Deck & Linux."
-authors = ["Blooym"]
-repository = "https://github.com/Blooym/xlm"
+name = "tlm"
+description = "A painless way to use TruckersMP Launcher on Steam Deck & Linux."
+authors = ["Blooym", "3ventic"]
+repository = "https://github.com/3ventic/tlm"
 version = "0.4.0"
 edition = "2024"
 

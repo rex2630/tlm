@@ -35,13 +35,13 @@ jobs:
       - name: Rename binary
         working-directory: ./target/release
         run: |
-          mv xlm xlm-x86_64-unknown-linux-gnu
+          mv tlm tlm-x86_64-unknown-linux-gnu
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
-            ./target/release/xlm-x86_64-unknown-linux-gnu
+            ./target/release/tlm-x86_64-unknown-linux-gnu
 
       - name: Release on GitHub
         uses: softprops/action-gh-release@v2
@@ -49,4 +49,4 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
-            ./target/release/xlm-x86_64-unknown-linux-gnu
+            ./target/release/tlm-x86_64-unknown-linux-gnu

@@ -6,137 +6,84 @@ use flate2::bufread::GzDecoder;
 use reqwest::Url;
 use std::{
     env,
-    error::Error,
     fmt::Display,
     fs::{self, File},
     io::{ErrorKind, Write},
     path::{Path, PathBuf},
-    primitive,
     str::FromStr,
 };
 use tar::Archive;
 use tokio::process::Command;
 use tracing::{debug, error, info, warn};
 
-const XIVLAUNCHER_BIN_FILENAME: &str = "XIVLauncher.Core";
+const XIVLAUNCHER_BIN_FILENAME: &str = "TruckersMP-Launcher";
 const XIVLAUNCHER_VERSION_REMOTE_FILENAME: &str = "version";
 const XIVLAUNCHER_VERSIONDATA_LOCAL_FILENAME: &str = "versiondata";
 const ARIA2C_BIN_FILENAME: &str = "aria2c";
 const EMBEDDED_ARIA2C_TARBALL: &[u8] = include_bytes!("../../static/aria2c-static.tar.gz");
 
-/// Install or update XIVLauncher and then open it.
+/// Install or update TruckersMP Launcher and then open it.
 #[derive(Debug, Clone, Parser)]
 pub struct LaunchCommand {
-    /// The name of the GitHub repository owner for XIVLauncher.
+    /// The name of the release tar.gz archive that contains a self-contained TruckersMP Launcher.
     #[clap(
-        default_value = "goatcorp",
-        long = "xlcore-repo-owner",
-        env = "XLM_XLCORE_REPO_OWNER"
-    )]
-    xlcore_repo_owner: String,
-
-    /// The name of the GitHub repository for XIVLauncher.
-    #[clap(
-        default_value = "XIVLauncher.Core",
-        long = "xlcore-repo-name",
-        env = "XLM_XLCORE_REPO_NAME"
-    )]
-    xlcore_repo_name: String,
-
-    /// The name of the release tar.gz archive that contains a self-contained XIVLauncher.
-    #[clap(
-        default_value = "XIVLauncher.Core.tar.gz",
-        long = "xlcore-release-asset",
-        env = "XLM_XLCORE_RELEASE_ASSET"
+        default_value = "TruckersMP-Launcher.tar.gz",
+        long = "release-asset",
+        env = "TLM_XLCORE_RELEASE_ASSET"
     )]
     xlcore_release_asset: String,
 
-    /// The URL to a release of XIVLauncher. This conflicts with `xlcore-repo-owner` and `xlcore-repo-name`
-    /// as it overrides the default git-based release system.
+    /// The URL to a release of TruckersMP Launcher.
     ///
     /// This should be a URL base that contains the following under it:
     ///
     /// - A plaintext file named `version` that contains only a version number.
     ///
-    /// - A tar.gz archive with the name of `--xlcore-release-asset` that contains XIVLauncher files.
+    /// - A tar.gz archive with the name of `--release-asset` that contains TruckersMP Launcher files.
     #[clap(
-        long = "xlcore-web-release-url",
-        alias = "xlcore-web-release-url-base",
-        env = "XLM_XLCORE_WEB_RELEASE_URL",
-        conflicts_with = "xlcore_repo_name",
-        conflicts_with = "xlcore_repo_owner"
+        long = "web-release-url",
+        alias = "web-release-url-base",
+        env = "TLM_XLCORE_WEB_RELEASE_URL",
+        default_value = "https://files.launcher.truckersmp.com/truckersmp-launcher/linux/x64"
     )]
-    xlcore_web_release_url: Option<Url>,
+    xlcore_web_release_url: Url,
 
-    /// The path to where XIVLauncher.Core should be installed.
-    #[clap(long = "install-directory", alias = "xlcore-install-directory", env = "XLM_INSTALL_DIRECTORY", default_value = dirs::data_local_dir().unwrap().join("xlcore").into_os_string())]
+    /// The path to where TruckersMP Launcher should be installed.
+    #[clap(long = "install-directory", env = "TLM_INSTALL_DIRECTORY", default_value = dirs::data_local_dir().unwrap().join("launcher").into_os_string())]
     xlcore_install_directory: PathBuf,
 
     /// Source of an aria2c tarball containing a statically compiled `aria2c` binary.
     /// By default an embedded tarball will be used.
     ///
     /// The supported source types are `file:path`, `url:url` or `embedded`.
-    #[clap(long = "aria-source", env = "XLM_ARIA_SOURCE", default_value_t = AriaSource::Embedded)]
+    #[clap(long = "aria-source", env = "TLM_ARIA_SOURCE", default_value_t = AriaSource::Embedded)]
     aria_source: AriaSource,
 
-    /// Use XIVLauncher's fallback secrets provider instead of the system's `libsecret` provider.
+    /// Skip checking for & installing new TruckersMP Launcher versions.
     ///
-    /// This should be used when no compatible system secrets provider is available where
-    /// credential saving is still desirable.
-    #[clap(
-        long = "use-fallback-secret-provider",
-        env = "XLM_USE_FALLBACK_SECRET_PROVIDER"
-    )]
-    use_fallback_secret_provider: bool,
-
-    /// Run the launcher in Steam compatibility tool mode.
-    ///
-    /// This should be disabled if launching standalone instead of from a Steam compatibility tool.
-    #[clap(
-        long = "run-as-steam-compat-tool",
-        env = "XLM_RUN_AS_STEAM_COMPAT_TOOL",
-        default_value_t = true
-    )]
-    run_as_steam_compat_tool: primitive::bool,
-
-    /// Skip checking for & installing new XIVLauncher versions.
-    ///
-    /// Note: this will not prevent XIVLauncher from installing when not present.
-    #[clap(long = "skip-update", env = "XLM_SKIP_UPDATE")]
+    /// Note: this will not prevent TruckersMP Launcher from installing when not present.
+    #[clap(long = "skip-update", env = "TLM_SKIP_UPDATE")]
     skip_update: bool,
 }
 
 impl LaunchCommand {
-    pub async fn run(self, gh_auth_token: Option<String>) -> anyhow::Result<()> {
+    pub async fn run(self) -> anyhow::Result<()> {
         info!("Attempting launch with: {self:?}");
 
         // Query the GitHub API or Web Release URL for release information.
-        let release = match self.xlcore_web_release_url {
-            Some(url) => {
-                ReleaseAssetInfo::from_url(
-                    url,
+        let release = ReleaseAssetInfo::from_url(
+                    self.xlcore_web_release_url,
                     &self.xlcore_release_asset,
                     XIVLAUNCHER_VERSION_REMOTE_FILENAME,
                 )
-                .await?
-            }
-            None => {
-                ReleaseAssetInfo::from_github(
-                    &self.xlcore_repo_owner,
-                    &self.xlcore_repo_name,
-                    &self.xlcore_release_asset,
-                    gh_auth_token.as_deref(),
-                )
-                .await?
-            }
-        };
+                .await?;
 
         // Conditionally run update check/install depending on flags and versions.
         let xl_installed =
             fs::exists(self.xlcore_install_directory.join(XIVLAUNCHER_BIN_FILENAME))?;
         if xl_installed && self.skip_update {
             info!(
-                "XIVLauncher already installed & version checks are disabled, skipping the update process"
+                "TruckersMP-Launcher already installed & version checks are disabled, skipping the update process"
             );
         } else {
             match fs::read_to_string(
@@ -146,13 +93,13 @@ impl LaunchCommand {
                 Ok(local_ver) => {
                     if xl_installed && local_ver == release.version {
                         info!(
-                            "XIVLauncher is up to date (local: {local_ver} == remote: {})",
+                            "TruckersMP-Launcher is up to date (local: {local_ver} == remote: {})",
                             release.version
                         );
                     } else {
                         let launch_ui = LaunchUI::new();
                         info!(
-                            "XIVLauncher is out of date or missing files (local {local_ver} != remote: {}, bin present: {xl_installed}) - starting update",
+                            "TruckersMP-Launcher is out of date or missing files (local {local_ver} != remote: {}, bin present: {xl_installed}) - starting update",
                             release.version
                         );
                         install_or_update_xlcore(
@@ -170,14 +117,14 @@ impl LaunchCommand {
                             },
                         )
                         .await?;
-                        info!("Successfully updated XIVLauncher to the latest version")
+                        info!("Successfully updated TruckersMP-Launcher to the latest version")
                     }
                 }
                 Err(err) => {
                     if err.kind() == ErrorKind::NotFound {
                         let launch_ui = LaunchUI::new();
                         info!(
-                            "Unable to obtain local version data for XIVLauncher - installing latest release"
+                            "Unable to obtain local version data for TruckersMP-Launcher - installing latest release"
                         );
                         install_or_update_xlcore(
                             release,
@@ -194,24 +141,16 @@ impl LaunchCommand {
                             },
                         )
                         .await?;
-                        info!("Successfully installed XIVLauncher");
+                        info!("Successfully installed TruckersMP-Launcher");
                     } else {
-                        error!("Something went wrong whilst checking for XIVLauncher: {err:?}",);
+                        error!("Something went wrong whilst checking for TruckersMP-Launcher: {err:?}",);
                     }
                 }
             };
         }
 
-        info!("Starting XIVLauncher");
+        info!("Starting TruckersMP-Launcher");
         let mut cmd = Command::new(self.xlcore_install_directory.join(XIVLAUNCHER_BIN_FILENAME));
-        // Use whatever secret's provider is the best fallback. Right now this is always FILE.
-        if self.use_fallback_secret_provider {
-            cmd.env("XL_SECRET_PROVIDER", "FILE");
-        }
-        // Needed to trigger compatibility tool mode in XIVLauncher.
-        if self.run_as_steam_compat_tool {
-            cmd.env("XL_SCT", "1");
-        }
         // Write LD_PRELOAD as XL_PRELOAD, the launcher will use it if needed to pass this through to the game.
         if let Ok(ld_preload) = env::var("LD_PRELOAD")
             && !ld_preload.trim().is_empty()
@@ -224,13 +163,13 @@ impl LaunchCommand {
         let exit_status = cmd.spawn()?.wait().await?;
         match exit_status.success() {
             true => {
-                info!("XIVLauncher.Core exited cleanly: {exit_status}");
+                info!("TruckersMP-Launcher exited cleanly: {exit_status}");
                 Ok(())
             }
             false => {
-                warn!("XIVLauncher did not exit with a successful status code: {exit_status}");
+                warn!("TruckersMP-Launcher did not exit with a successful status code: {exit_status}");
                 Err(anyhow!(
-                    "XIVLauncher did not exit with a successful status code: {exit_status}"
+                    "TruckersMP-Launcher did not exit with a successful status code: {exit_status}"
                 ))
             }
         }
@@ -249,12 +188,12 @@ async fn install_or_update_xlcore<F: Fn(&str)>(
     let mut xlcore_archive = {
         match is_update {
             true => {
-                info!("Updating XIVLauncher from {}", release.download_url);
-                progress_msg_cb(&format!("Updating XIVLauncher ({})", release.version));
+                info!("Updating TruckersMP-Launcher from {}", release.download_url);
+                progress_msg_cb(&format!("Updating TruckersMP-Launcher ({})", release.version));
             }
             false => {
-                info!("Downloading XIVLauncher from {}", release.download_url);
-                progress_msg_cb(&format!("Downloading XIVLauncher ({})", release.version));
+                info!("Downloading TruckersMP-Launcher from {}", release.download_url);
+                progress_msg_cb(&format!("Downloading TruckersMP-Launcher ({})", release.version));
             }
         }
 
@@ -288,19 +227,19 @@ async fn install_or_update_xlcore<F: Fn(&str)>(
     fs::create_dir_all(install_location)?;
 
     // Unpack XLCore
-    info!("Unpacking XIVLauncher tarball");
-    progress_msg_cb("Extracting XIVLauncher");
+    info!("Unpacking TruckersMP-Launcher tarball");
+    progress_msg_cb("Extracting TruckersMP-Launcher");
     xlcore_archive.unpack(install_location)?;
     drop(xlcore_archive);
-    info!("Ensuring XIVLauncher tarball contained compatible files");
-    progress_msg_cb("Validating XIVLauncher files");
+    info!("Ensuring TruckersMP-Launcher tarball contained compatible files");
+    progress_msg_cb("Validating TruckersMP-Launcher files");
     if !fs::exists(install_location.join(XIVLAUNCHER_BIN_FILENAME))? {
         bail!(
-            "XIVLauncher tarball does not contain a file named '{}' and is incompatible with XLM.",
+            "TruckersMP-Launcher tarball does not contain a file named '{}' and is incompatible with XLM.",
             XIVLAUNCHER_BIN_FILENAME
         )
     }
-    info!("Successfully extracted and wrote XIVLauncher files");
+    info!("Successfully extracted and wrote TruckersMP-Launcher files");
 
     // Unpack Aria2c
     info!("Unpacking aria2c tarball");
@@ -375,57 +314,6 @@ struct ReleaseAssetInfo {
 }
 
 impl ReleaseAssetInfo {
-    /// Obtain [`ReleaseAssetInfo`] from the GitHub API.
-    pub async fn from_github(
-        repo_owner: &str,
-        repo_name: &str,
-        release_asset: &str,
-        gh_auth_token: Option<&str>,
-    ) -> Result<Self> {
-        let release = {
-            match {
-                let mut builder = octocrab::OctocrabBuilder::new();
-                if let Some(auth_token) = gh_auth_token {
-                    builder = builder.personal_token(auth_token);
-                };
-                builder.build()?
-            }
-            .repos(repo_owner, repo_name)
-            .releases()
-            .get_latest()
-            .await
-            {
-                Ok(release) => release,
-                Err(err) => {
-                    bail!(
-                        "Failed to obtain release information for {}/{}: {:?}",
-                        repo_owner,
-                        repo_name,
-                        err.source()
-                    );
-                }
-            }
-        };
-
-        match release
-            .assets
-            .into_iter()
-            .find(|asset| asset.name == release_asset)
-        {
-            Some(asset) => Ok(Self {
-                download_url: asset.browser_download_url,
-                version: release.tag_name,
-            }),
-            None => {
-                bail!(
-                    "Failed to find asset {} in release {}",
-                    release_asset,
-                    release.tag_name
-                );
-            }
-        }
-    }
-
     /// Obtain [`ReleaseAssetInfo`] from a web URL.
     pub async fn from_url(base_url: Url, release_asset: &str, version_asset: &str) -> Result<Self> {
         let (release_url, version_url) =

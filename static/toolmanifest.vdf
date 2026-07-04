@@ -1,7 +1,7 @@
 "manifest"
 {
   "version" "2"
-  "commandline" "/xlm.sh %verb%"
+  "commandline" "/tlm.sh %verb%"
   "use_sessions" "1"
-  "compatmanager_layer_name" "xlm"
+  "compatmanager_layer_name" "tlm"
 }

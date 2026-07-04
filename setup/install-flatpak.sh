@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-echo "-- XLM Flatpak Auto-Installer --"
+echo "-- TLM Flatpak Auto-Installer --"
 echo
 
 if [ "$(id -u)" -eq 0 ]; then
@@ -8,15 +8,15 @@ if [ "$(id -u)" -eq 0 ]; then
     exit 1
 fi
 
-echo "[Step: 1] Downloading XLM"
-curl --fail -L https://github.com/Blooym/xlm/releases/latest/download/xlm-x86_64-unknown-linux-gnu > /tmp/xlm
+echo "[Step: 1] Downloading TLM"
+curl --fail -L https://github.com/3ventic/tlm/releases/latest/download/tlm-x86_64-unknown-linux-gnu > /tmp/tlm
 
-echo "[Step: 2] Configuring XLM as a Steam Tool"
-chmod +x /tmp/xlm
-/tmp/xlm install-steam-tool --xlm-updater-disable --extra-launch-args="--run-as-steam-compat-tool=true --use-fallback-secret-provider" --steam-compat-path ~/.var/app/com.valvesoftware.Steam/.steam/root/compatibilitytools.d/
+echo "[Step: 2] Configuring TLM as a Steam Tool"
+chmod +x /tmp/tlm
+/tmp/tlm install-steam-tool --steam-compat-path ~/.var/app/com.valvesoftware.Steam/.steam/root/compatibilitytools.d/
 
-echo "[Step: 3] Cleanup XLM binary"
-rm /tmp/xlm
+echo "[Step: 3] Cleanup TLM binary"
+rm /tmp/tlm
 
 echo
-echo "-- Auto Installer Complete: Restart Steam and follow the guide at https://goatcorp.github.io/faq/steamdeck or https://github.com/Blooym/xlm#readme to continue! --"
+echo "-- Auto Installer Complete: Restart Steam and follow the guide at https://github.com/3ventic/tlm#readme to continue! --"

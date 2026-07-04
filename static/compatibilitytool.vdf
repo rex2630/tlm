@@ -2,10 +2,10 @@
 {
   "compat_tools"
   {
-    "xlm"
+    "tlm"
     {
       "install_path" "."
-      "display_name" "XLCore [XLM]"
+      "display_name" "TruckersMP [TLM]"
       "from_oslist"  "windows"
       "to_oslist"    "linux"
     }

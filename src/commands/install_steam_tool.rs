@@ -10,9 +10,9 @@ use tracing::info;
 
 const TOOLMANIFEST_VDF_CONTENT: &[u8] = include_bytes!("../../static/toolmanifest.vdf");
 const COMPATIBILITYTOOL_VDF_CONTENT: &[u8] = include_bytes!("../../static/compatibilitytool.vdf");
-const XLM_COMPATDIR_DIRNAME: &str = "XLM";
-const XLM_BINARY_FILENAME: &str = "xlm";
-const XLM_LAUNCHSCRIPT_FILENAME: &str = "xlm.sh";
+const XLM_COMPATDIR_DIRNAME: &str = "TLM";
+const XLM_BINARY_FILENAME: &str = "tlm";
+const XLM_LAUNCHSCRIPT_FILENAME: &str = "tlm.sh";
 const TOOLMANIFEST_VDF_FILENAME: &str = "toolmanifest.vdf";
 const COMPATIBILITYTOOL_VDF_FILENAME: &str = "compatibilitytool.vdf";
 
@@ -56,7 +56,7 @@ impl InstallSteamToolCommand {
         // Install compatibility tool.
         let xlm_compat_dir = self.steam_compat_path.join(XLM_COMPATDIR_DIRNAME);
         info!(
-            "Installing XLM compatibility tool to {:?}\nExtra launch args: {:?}, Extra env vars: {:?}",
+            "Installing TLM compatibility tool to {:?}\nExtra launch args: {:?}, Extra env vars: {:?}",
             xlm_compat_dir, self.extra_launch_args, self.extra_env_vars
         );
         fs::create_dir_all(&xlm_compat_dir)?;
@@ -68,7 +68,7 @@ impl InstallSteamToolCommand {
             xlm_compat_dir.join(XLM_BINARY_FILENAME),
         )?;
         info!(
-            "Successfully set up the XLM compatibility tool - please restart Steam for it to correctly appear."
+            "Successfully set up the TLM compatibility tool - please restart Steam for it to correctly appear."
         );
 
         Ok(())
@@ -132,7 +132,7 @@ if [ -d $tooldir/prelaunch.d ]; then
 fi
 unset extension
 
-PATH=$PATH:$tooldir/xlcore {} $tooldir/xlm launch {} --install-directory $tooldir/xlcore $4
+PATH=$PATH:$tooldir/launcher {} $tooldir/tlm launch {} --install-directory $tooldir/launcher $4
 
 # XLM post-launch scripts.
 if [ -d $tooldir/postlaunch.d ]; then

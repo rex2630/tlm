@@ -3,7 +3,7 @@ name = "tlm"
 description = "A painless way to use TruckersMP Launcher on Steam Deck & Linux."
 authors = ["Blooym", "3ventic"]
 repository = "https://github.com/3ventic/tlm"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 
 [features]

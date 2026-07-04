@@ -18,9 +18,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/3ventic/tlm/main/setup/ins
 
 Steam (Flatpak):
 
-```sh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/3ventic/tlm/main/setup/install-flatpak.sh)"
-```
+Not yet supported
 
 ---
 
@@ -28,9 +26,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/3ventic/tlm/main/setup/ins
 
 Steam (Snap) **[Unsupported - may be broken on Wayland]**
 
-```sh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/3ventic/tlm/main/setup/install-snap.sh)"
-```
+Not yet supported
 
 ---
 

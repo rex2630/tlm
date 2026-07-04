@@ -44,7 +44,7 @@ pub struct LaunchCommand {
         long = "web-release-url",
         alias = "web-release-url-base",
         env = "TLM_WEB_RELEASE_URL",
-        default_value = "https://files.launcher.truckersmp.com/truckersmp-launcher/linux/x64"
+        default_value = "https://files.launcher.truckersmp.com/truckersmp-launcher/linux/x64/"
     )]
     xlcore_web_release_url: Url,
 

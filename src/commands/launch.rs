@@ -13,7 +13,7 @@ use std::{
     str::FromStr,
 };
 use tar::Archive;
-use tokio::process::Command;
+use tokio::process::{Child, Command};
 use tracing::{debug, error, info, warn};
 
 const XIVLAUNCHER_BIN_FILENAME: &str = "TruckersMP-Launcher";
@@ -21,6 +21,9 @@ const XIVLAUNCHER_VERSION_REMOTE_FILENAME: &str = "version";
 const XIVLAUNCHER_VERSIONDATA_LOCAL_FILENAME: &str = "versiondata";
 const ARIA2C_BIN_FILENAME: &str = "aria2c";
 const EMBEDDED_ARIA2C_TARBALL: &[u8] = include_bytes!("../../static/aria2c-static.tar.gz");
+
+const DISCORD_BRIDGE_FILENAME: &str = "winediscordipcbridge.exe";
+const DISCORD_BRIDGE_PREFIX_DIRNAME: &str = "discord-bridge-prefix";
 
 /// Install or update TruckersMP Launcher and then open it.
 #[derive(Debug, Clone, Parser)]
@@ -149,6 +152,8 @@ impl LaunchCommand {
             };
         }
 
+        let mut discord_bridge = start_discord_bridge(&self.xlcore_install_directory).await;
+
         info!("Starting TruckersMP-Launcher");
         let mut cmd = Command::new(self.xlcore_install_directory.join(XIVLAUNCHER_BIN_FILENAME));
         // Write LD_PRELOAD as XL_PRELOAD, the launcher will use it if needed to pass this through to the game.
@@ -160,7 +165,14 @@ impl LaunchCommand {
         // Always remove LD_PRELOAD as Steam overlay will break the launcher text.
         cmd.env_remove("LD_PRELOAD");
 
-        let exit_status = cmd.spawn()?.wait().await?;
+        let exit_status = cmd.spawn()?.wait().await;
+
+        if let Some(child) = discord_bridge.as_mut() {
+            let _ = child.start_kill();
+            let _ = child.wait().await;
+        }
+
+        let exit_status = exit_status?;
         match exit_status.success() {
             true => {
                 info!("TruckersMP-Launcher exited cleanly: {exit_status}");
@@ -172,6 +184,52 @@ impl LaunchCommand {
                     "TruckersMP-Launcher did not exit with a successful status code: {exit_status}"
                 ))
             }
+        }
+    }
+}
+
+async fn start_discord_bridge(install_dir: &Path) -> Option<Child> {
+    let bridge_exe = install_dir.join(DISCORD_BRIDGE_FILENAME);
+    if !fs::exists(&bridge_exe).ok()? {
+        return None;
+    }
+
+    let runtime_dir = env::var("XDG_RUNTIME_DIR").ok()?;
+    if !Path::new(&runtime_dir).join("discord-ipc-0").exists() {
+        return None;
+    }
+
+    if std::process::Command::new("pgrep")
+        .arg("-f")
+        .arg("winediscordipcbridge.exe")
+        .status()
+        .ok()?
+        .success()
+    {
+        return None;
+    }
+
+    let mut cmd = Command::new("umu-run");
+    cmd.arg(&bridge_exe);
+    cmd.env("WINEPREFIX", install_dir.join(DISCORD_BRIDGE_PREFIX_DIRNAME));
+    cmd.env("GAMEID", env::var("GAMEID").unwrap_or_else(|_| "umu-0".to_string()));
+
+    if let Ok(protonpath) = env::var("PROTONPATH")
+        && !protonpath.trim().is_empty()
+    {
+        cmd.env("PROTONPATH", protonpath);
+    }
+
+    cmd.kill_on_drop(true);
+
+    match cmd.spawn() {
+        Ok(child) => {
+            info!("Started Discord bridge");
+            Some(child)
+        }
+        Err(err) => {
+            warn!("Failed to start Discord bridge: {err:?}");
+            None
         }
     }
 }
